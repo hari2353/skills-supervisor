@@ -62,7 +62,7 @@ def create_app(skills_agent: SkillsAgent | None = None, registry=None, mcp_regis
     def chat(payload: dict) -> dict:
         if chat_llm is None:
             raise HTTPException(status_code=503, detail="LLM backend not configured; set SKILLS_LLM_BASE_URL")
-        message = str(payload.get("message", "")).strip()
+        message = str(payload.get("message", ""))[:10000].strip()
         if not message:
             raise HTTPException(status_code=422, detail="message required")
         supervisor = SupervisorChatAgent(chat_llm, chat_skills_client, registry_adapter or NullRegistry(), mcp)
