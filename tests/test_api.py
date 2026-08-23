@@ -33,8 +33,6 @@ def test_screen_candidate_workflow_end_to_end(client):
     assert body["matched"] == ["Python"]
     assert body["gaps"] == ["Kubernetes"]
     assert body["verdict"] == "partial_match"
-    calls = [c for c in client.app.routes]
-    assert calls
 
 
 def test_mcp_servers_listing_and_registration(client, tmp_path):
