@@ -56,7 +56,19 @@ curl -X POST localhost:8010/chat -d '{"message": "What does this JD need? ..."}'
 
 ## Tests
 
-20 tests cover: A2A task routing + outage containment, tool-manifest schema validity, delegation loop with
+29 tests cover: A2A task routing + outage containment, tool-manifest schema validity, delegation loop with
 scripted fake LLMs, error-tracing in dispatch, deterministic workflows, MCP registry persistence + health.
+
+### Conversation + trace + workflow hardening (market-steal, 2026-11-18)
+
+- **Bounded conversation memory** — `SupervisorChatAgent(max_messages=24)`
+  keeps the system prompt pinned and the newest N messages, dropping a
+  leading `tool` message whose parent assistant `tool_calls` fell off the
+  window (no orphans for strict chat APIs).
+- **Trace enrichment** — every `tool_trace` entry now carries `duration_ms`,
+  plus the `error` text when the call failed; existing keys unchanged.
+- **Workflow input validation** — empty/oversized (8000 chars) jd/resume/topic
+  fail before any A2A call; a JD that yields zero skills returns a clear
+  `failed` error instead of a meaningless coverage verdict.
 
 MIT

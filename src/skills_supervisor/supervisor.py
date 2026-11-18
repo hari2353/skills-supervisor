@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 import uuid
 
 
@@ -52,12 +53,27 @@ MAX_TOOL_ROUNDS = 6
 
 
 class SupervisorChatAgent:
-    def __init__(self, llm_chat, skills_client, registry_client, mcp_registry) -> None:
+    def __init__(self, llm_chat, skills_client, registry_client, mcp_registry,
+                 max_messages: int = 24) -> None:
         self.llm_chat = llm_chat
         self.skills_client = skills_client
         self.registry_client = registry_client
         self.mcp_registry = mcp_registry
+        self.max_messages = max(1, max_messages)
         self.messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    def _trim(self) -> None:
+        """Window the conversation: system pinned, newest `max_messages` kept.
+
+        Never keeps a `tool` message whose parent assistant `tool_calls`
+        message fell off the front (orphan results break strict chat APIs).
+        """
+        if len(self.messages) - 1 <= self.max_messages:
+            return
+        kept = self.messages[-self.max_messages:]
+        while kept and kept[0]["role"] == "tool":
+            kept.pop(0)
+        self.messages = [self.messages[0], *kept]
 
     def chat(self, user_message: str) -> dict:
         self.messages.append({"role": "user", "content": user_message})
@@ -68,15 +84,26 @@ class SupervisorChatAgent:
             if not tool_calls:
                 reply = response.get("content") or ""
                 self.messages.append({"role": "assistant", "content": reply})
+                self._trim()
                 return {"reply": reply, "tool_trace": trace}
             assistant_msg = {"role": "assistant", "content": response.get("content"), "tool_calls": response["raw_tool_calls"]}
             self.messages.append(assistant_msg)
             for call in tool_calls:
+                started = time.monotonic()
                 result = self._dispatch(call["name"], call["arguments"])
-                trace.append({"tool": call["name"], "arguments": call["arguments"], "ok": "error" not in result})
+                entry = {
+                    "tool": call["name"],
+                    "arguments": call["arguments"],
+                    "ok": "error" not in result,
+                    "duration_ms": round((time.monotonic() - started) * 1000, 3),
+                }
+                if "error" in result:
+                    entry["error"] = result["error"]
+                trace.append(entry)
                 self.messages.append(
                     {"role": "tool", "tool_call_id": call["id"], "content": json.dumps(result, default=str)}
                 )
+        self._trim()
         return {"reply": "stopped after maximum tool rounds", "tool_trace": trace}
 
     def _dispatch(self, name: str, arguments: dict) -> dict:
