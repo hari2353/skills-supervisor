@@ -4,6 +4,8 @@ import json
 import time
 import uuid
 
+from .diagnostics import Diagnostic
+
 
 TOOLS = [
     {
@@ -116,6 +118,9 @@ class SupervisorChatAgent:
                 return {"agents": [a.card.model_dump(mode="json") for a in matches]}
             if name == "list_mcp_servers":
                 return {"servers": self.mcp_registry.list_servers()}
-            return {"error": f"unknown tool '{name}'"}
+            diag = Diagnostic("SUP_TOOL_UNKNOWN", f"unknown tool '{name}'")
+            return {"error": diag.message, "diagnostic": diag.to_dict()}
         except Exception as exc:
-            return {"error": str(exc), "request_id": uuid.uuid4().hex}
+            msg = str(exc) or type(exc).__name__
+            return {"error": msg, "request_id": uuid.uuid4().hex,
+                    "diagnostic": Diagnostic("SUP_DELEGATION_FAILED", msg).to_dict()}

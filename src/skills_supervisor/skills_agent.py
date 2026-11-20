@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .a2a import AGENT_CARD
+from .diagnostics import Diagnostic
 
 
 class SkillsAgent:
@@ -31,7 +32,9 @@ class SkillsAgent:
 
     def handle(self, skill: str, params: dict) -> dict:
         if skill not in self.HANDLED_SKILLS:
-            return {"status": "failed", "error": f"unsupported skill '{skill}'"}
+            diag = Diagnostic("SUP_TOOL_UNKNOWN", f"unsupported skill '{skill}'")
+            return {"status": "failed", "error": diag.message,
+                    "diagnostic": diag.to_dict()}
         try:
             if skill == "infer_skills":
                 artifact = self._post("/v1/skills/infer", params)
@@ -45,5 +48,7 @@ class SkillsAgent:
                     report_params["today"] = params["today"]
                 artifact = self._get("/v1/lifecycle/report", report_params)
         except Exception as exc:
-            return {"status": "failed", "error": f"skills-engine unreachable: {exc}"}
+            msg = f"skills-engine unreachable: {exc}"
+            diag = Diagnostic("SUP_DELEGATION_FAILED", msg)
+            return {"status": "failed", "error": msg, "diagnostic": diag.to_dict()}
         return {"status": "completed", "artifact": artifact}

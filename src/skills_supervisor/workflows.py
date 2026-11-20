@@ -1,18 +1,24 @@
 from __future__ import annotations
 
 from .a2a import A2AClient
+from .diagnostics import Diagnostic
 
 MAX_WORKFLOW_CHARS = 8000  # inputs beyond this are refused, never truncated
+
+
+def _failed(diag: Diagnostic) -> dict:
+    return {"status": "failed", "error": diag.message, "diagnostic": diag.to_dict()}
 
 
 def _invalid(*fields: tuple[str, str]) -> dict | None:
     """Fail before any downstream call: bad workflow input is cheap to reject."""
     for label, text in fields:
         if not text or not text.strip():
-            return {"status": "failed", "error": f"{label} must be non-empty"}
+            return _failed(Diagnostic("SUP_INPUT_EMPTY", f"{label} must be non-empty"))
         if len(text) > MAX_WORKFLOW_CHARS:
-            return {"status": "failed",
-                    "error": f"{label} too long ({len(text)} > {MAX_WORKFLOW_CHARS} chars)"}
+            return _failed(Diagnostic(
+                "SUP_INPUT_TOO_LARGE",
+                f"{label} too long ({len(text)} > {MAX_WORKFLOW_CHARS} chars)"))
     return None
 
 
@@ -23,7 +29,13 @@ def screen_candidate(skills_client: A2AClient, jd_text: str, resume_text: str) -
     jd_task = skills_client.send_task("infer_skills", {"text": jd_text, "context_type": "job_description"})
     resume_task = skills_client.send_task("infer_skills", {"text": resume_text, "context_type": "resume"})
     if jd_task.get("status") != "completed" or resume_task.get("status") != "completed":
-        return {"status": "failed", "error": jd_task.get("error") or resume_task.get("error")}
+        existing = jd_task.get("diagnostic") or resume_task.get("diagnostic")
+        if existing:
+            return {"status": "failed", "error": jd_task.get("error") or resume_task.get("error"),
+                    "diagnostic": existing}
+        return _failed(Diagnostic(
+            "SUP_DELEGATION_FAILED",
+            jd_task.get("error") or resume_task.get("error") or "delegation failed"))
 
     def canonical_names(task_response: dict) -> set[str]:
         return {
@@ -37,8 +49,8 @@ def screen_candidate(skills_client: A2AClient, jd_text: str, resume_text: str) -
     matched = sorted(required & have)
     gaps = sorted(required - have)
     if not required:
-        return {"status": "failed",
-                "error": "no skills extracted from job description"}
+        return _failed(Diagnostic("SUP_NO_SKILLS",
+                                  "no skills extracted from job description"))
     coverage = round(len(matched) / len(required), 4)
     return {
         "status": "completed",
@@ -57,11 +69,14 @@ def talent_brief(skills_client: A2AClient, registry_find_by_skill, topic: str) -
         return bad
     task = skills_client.send_task("infer_skills", {"text": topic, "context_type": "job_description"})
     if task.get("status") != "completed":
-        return {"status": "failed", "error": task.get("error")}
+        existing = task.get("diagnostic")
+        if existing:
+            return {"status": "failed", "error": task.get("error"), "diagnostic": existing}
+        return _failed(Diagnostic("SUP_DELEGATION_FAILED",
+                                  task.get("error") or "delegation failed"))
     required = sorted({s["canonical_name"] for s in A2AClient.artifact(task).get("skills", []) if s.get("canonical_name")})
     if not required:
-        return {"status": "failed",
-                "error": "no skills extracted from topic"}
+        return _failed(Diagnostic("SUP_NO_SKILLS", "no skills extracted from topic"))
     recommendations = []
     covered: set[str] = set()
     for skill in required:

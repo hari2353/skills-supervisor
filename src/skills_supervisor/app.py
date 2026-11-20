@@ -6,6 +6,7 @@ import uuid
 from fastapi import FastAPI, HTTPException
 
 from .a2a import AGENT_CARD, A2AClient, SUPERVISOR_CARD
+from .diagnostics import Diagnostic
 from .mcp_registry import McpRegistry
 from .skills_agent import SkillsAgent
 from .supervisor import SupervisorChatAgent
@@ -55,7 +56,8 @@ def create_app(skills_agent: SkillsAgent | None = None, registry=None, mcp_regis
         result = agent.handle(str(payload.get("skill", "")), dict(payload.get("params", {})))
         result["task_id"] = task_id
         if result["status"] == "failed":
-            raise HTTPException(status_code=422, detail=result.get("error"))
+            raise HTTPException(status_code=422,
+                                detail=result.get("diagnostic") or result.get("error"))
         return result
 
     @app.post("/chat")
@@ -64,7 +66,8 @@ def create_app(skills_agent: SkillsAgent | None = None, registry=None, mcp_regis
             raise HTTPException(status_code=503, detail="LLM backend not configured; set SKILLS_LLM_BASE_URL")
         message = str(payload.get("message", ""))[:10000].strip()
         if not message:
-            raise HTTPException(status_code=422, detail="message required")
+            raise HTTPException(status_code=422,
+                                detail=Diagnostic("SUP_INPUT_EMPTY", "message required").to_dict())
         supervisor = SupervisorChatAgent(chat_llm, chat_skills_client, registry_adapter or NullRegistry(), mcp)
         return supervisor.chat(message)
 
@@ -73,14 +76,16 @@ def create_app(skills_agent: SkillsAgent | None = None, registry=None, mcp_regis
         jd_text = str(payload.get("jd_text", "")).strip()
         resume_text = str(payload.get("resume_text", "")).strip()
         if not jd_text or not resume_text:
-            raise HTTPException(status_code=422, detail="jd_text and resume_text required")
+            raise HTTPException(status_code=422, detail=Diagnostic(
+                "SUP_INPUT_EMPTY", "jd_text and resume_text required").to_dict())
         return screen_candidate(skills_client_for_workflows, jd_text, resume_text)
 
     @app.post("/workflows/talent-brief")
     def workflow_brief(payload: dict) -> dict:
         topic = str(payload.get("topic", "")).strip()
         if not topic:
-            raise HTTPException(status_code=422, detail="topic required")
+            raise HTTPException(status_code=422,
+                                detail=Diagnostic("SUP_INPUT_EMPTY", "topic required").to_dict())
         if registry_adapter is None:
             raise HTTPException(status_code=503, detail="agent-registry not wired")
         return talent_brief(skills_client_for_workflows, registry_adapter.find_by_skill, topic)

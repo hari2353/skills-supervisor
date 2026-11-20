@@ -56,7 +56,7 @@ curl -X POST localhost:8010/chat -d '{"message": "What does this JD need? ..."}'
 
 ## Tests
 
-29 tests cover: A2A task routing + outage containment, tool-manifest schema validity, delegation loop with
+36 tests cover: A2A task routing + outage containment, tool-manifest schema validity, delegation loop with
 scripted fake LLMs, error-tracing in dispatch, deterministic workflows, MCP registry persistence + health.
 
 ### Conversation + trace + workflow hardening (market-steal, 2026-11-18)
@@ -70,5 +70,8 @@ scripted fake LLMs, error-tracing in dispatch, deterministic workflows, MCP regi
 - **Workflow input validation** — empty/oversized (8000 chars) jd/resume/topic
   fail before any A2A call; a JD that yields zero skills returns a clear
   `failed` error instead of a meaningless coverage verdict.
+- **Agent repair contract** — expected failures keep their `error` string and
+  add `diagnostic` (`{code, message, hint, docs}`); HTTP 422 puts it in
+  `detail`. Catalog: `docs/diagnostics.md`.
 
 MIT
