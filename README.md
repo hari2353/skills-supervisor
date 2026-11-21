@@ -54,6 +54,16 @@ export SKILLS_LLM_BASE_URL=http://localhost:11434/v1   # Ollama/Groq/vLLM — an
 curl -X POST localhost:8010/chat -d '{"message": "What does this JD need? ..."}' -H "Content-Type: application/json"
 ```
 
+## Typed consensus swarm
+
+`skills_supervisor.swarm` adds a deterministic topology alongside the
+supervisor: `TypedSwarm({Role.RESEARCHER: fn, Role.CODER: fn, Role.REVIEWER: fn})`
+asks every registered role for a `Proposal` each round (bounded by
+`max_rounds`). A group needs `quorum` votes; exact ties go to the reviewer's
+answer, else total confidence, else role order. No quorum → highest-ranked
+answer with `consensus=False` and the distinct answers in `conflicts`. No LLM
+or network in the module — agents are injected callables.
+
 ## Tests
 
 36 tests cover: A2A task routing + outage containment, tool-manifest schema validity, delegation loop with
