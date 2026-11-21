@@ -64,6 +64,11 @@ answer, else total confidence, else role order. No quorum → highest-ranked
 answer with `consensus=False` and the distinct answers in `conflicts`. No LLM
 or network in the module — agents are injected callables.
 
+## Scenario benchmark (Harvard Edge AVPerf cross-pollination)
+
+`skills_supervisor.scenarios.run_scenarios` runs named agent workflows and
+reports a safe-completion rate with bounded failure detail.
+
 ## Tests
 
 36 tests cover: A2A task routing + outage containment, tool-manifest schema validity, delegation loop with
