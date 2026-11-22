@@ -69,7 +69,7 @@ or network in the module — agents are injected callables.
 `skills_supervisor.scenarios.run_scenarios` runs named agent workflows and
 reports a safe-completion rate with bounded failure detail.
 
-## Tests
+## Self-consistency voting (UC Berkeley RISE cross-pollination)\n\n`skills_supervisor.consensus.majority_vote` and `self_consistency` aggregate\nseveral sampled answers by majority (weighted, tie-broken deterministically)\nand report agreement, so the swarm can require consensus before acting.\n\n## Tests
 
 36 tests cover: A2A task routing + outage containment, tool-manifest schema validity, delegation loop with
 scripted fake LLMs, error-tracing in dispatch, deterministic workflows, MCP registry persistence + health.
