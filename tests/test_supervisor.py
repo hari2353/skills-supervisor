@@ -2,7 +2,6 @@ import json
 
 from skills_supervisor.a2a import A2AClient
 from skills_supervisor.mcp_registry import McpRegistry
-from skills_supervisor.skills_agent import SkillsAgent
 from skills_supervisor.supervisor import TOOLS, SupervisorChatAgent
 
 

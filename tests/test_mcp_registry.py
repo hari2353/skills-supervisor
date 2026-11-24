@@ -1,4 +1,4 @@
-from skills_supervisor.mcp_registry import DEFAULT_SERVERS, McpRegistry
+from skills_supervisor.mcp_registry import McpRegistry
 
 
 def test_default_registry_ships_fastmcp_skills_tools():
