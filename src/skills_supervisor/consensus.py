@@ -4,6 +4,7 @@ Cross-pollinated from ucbrise/clipper's model-selection idea and the
 self-consistency literature: sample several answers, then take the majority
 vote instead of trusting a single greedy decode. Deterministic and offline.
 """
+
 from __future__ import annotations
 
 from collections import Counter

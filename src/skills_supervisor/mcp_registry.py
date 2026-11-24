@@ -10,14 +10,24 @@ DEFAULT_SERVERS = [
         "transport": "stdio",
         "endpoint": "python src/skills_mcp/server.py",
         "framework": "fastmcp",
-        "tools": ["infer_skills", "normalize_skill", "search_taxonomy", "taxonomy_stats", "lifecycle_report"],
+        "tools": [
+            "infer_skills",
+            "normalize_skill",
+            "search_taxonomy",
+            "taxonomy_stats",
+            "lifecycle_report",
+        ],
     }
 ]
 
 
 class McpRegistry:
-    def __init__(self, servers: list[dict] | None = None, persistence_path: Path | None = None) -> None:
-        self._servers: dict[str, dict] = {s["name"]: s for s in (servers if servers is not None else DEFAULT_SERVERS)}
+    def __init__(
+        self, servers: list[dict] | None = None, persistence_path: Path | None = None
+    ) -> None:
+        self._servers: dict[str, dict] = {
+            s["name"]: s for s in (servers if servers is not None else DEFAULT_SERVERS)
+        }
         self._health: dict[str, bool] = {}
         self._lock = threading.Lock()
         self.persistence_path = persistence_path
@@ -35,7 +45,9 @@ class McpRegistry:
             return
         self.persistence_path.parent.mkdir(parents=True, exist_ok=True)
         payload = {"servers": list(self._servers.values())}
-        self.persistence_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        self.persistence_path.write_text(
+            json.dumps(payload, indent=2), encoding="utf-8"
+        )
 
     def register(self, entry: dict) -> dict:
         with self._lock:

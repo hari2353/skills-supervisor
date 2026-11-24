@@ -16,7 +16,15 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "skill": {"type": "string", "enum": ["infer_skills", "normalize_skill", "search_taxonomy", "lifecycle_report"]},
+                    "skill": {
+                        "type": "string",
+                        "enum": [
+                            "infer_skills",
+                            "normalize_skill",
+                            "search_taxonomy",
+                            "lifecycle_report",
+                        ],
+                    },
                     "params": {"type": "object"},
                 },
                 "required": ["skill"],
@@ -55,8 +63,14 @@ MAX_TOOL_ROUNDS = 6
 
 
 class SupervisorChatAgent:
-    def __init__(self, llm_chat, skills_client, registry_client, mcp_registry,
-                 max_messages: int = 24) -> None:
+    def __init__(
+        self,
+        llm_chat,
+        skills_client,
+        registry_client,
+        mcp_registry,
+        max_messages: int = 24,
+    ) -> None:
         self.llm_chat = llm_chat
         self.skills_client = skills_client
         self.registry_client = registry_client
@@ -72,7 +86,7 @@ class SupervisorChatAgent:
         """
         if len(self.messages) - 1 <= self.max_messages:
             return
-        kept = self.messages[-self.max_messages:]
+        kept = self.messages[-self.max_messages :]
         while kept and kept[0]["role"] == "tool":
             kept.pop(0)
         self.messages = [self.messages[0], *kept]
@@ -88,7 +102,11 @@ class SupervisorChatAgent:
                 self.messages.append({"role": "assistant", "content": reply})
                 self._trim()
                 return {"reply": reply, "tool_trace": trace}
-            assistant_msg = {"role": "assistant", "content": response.get("content"), "tool_calls": response["raw_tool_calls"]}
+            assistant_msg = {
+                "role": "assistant",
+                "content": response.get("content"),
+                "tool_calls": response["raw_tool_calls"],
+            }
             self.messages.append(assistant_msg)
             for call in tool_calls:
                 started = time.monotonic()
@@ -103,7 +121,11 @@ class SupervisorChatAgent:
                     entry["error"] = result["error"]
                 trace.append(entry)
                 self.messages.append(
-                    {"role": "tool", "tool_call_id": call["id"], "content": json.dumps(result, default=str)}
+                    {
+                        "role": "tool",
+                        "tool_call_id": call["id"],
+                        "content": json.dumps(result, default=str),
+                    }
                 )
         self._trim()
         return {"reply": "stopped after maximum tool rounds", "tool_trace": trace}
@@ -111,7 +133,9 @@ class SupervisorChatAgent:
     def _dispatch(self, name: str, arguments: dict) -> dict:
         try:
             if name == "ask_skills_agent":
-                task = self.skills_client.send_task(arguments["skill"], arguments.get("params", {}))
+                task = self.skills_client.send_task(
+                    arguments["skill"], arguments.get("params", {})
+                )
                 return task
             if name == "search_agent_registry":
                 matches = self.registry_client.find_by_skill(arguments["skill_name"])
@@ -122,5 +146,8 @@ class SupervisorChatAgent:
             return {"error": diag.message, "diagnostic": diag.to_dict()}
         except Exception as exc:
             msg = str(exc) or type(exc).__name__
-            return {"error": msg, "request_id": uuid.uuid4().hex,
-                    "diagnostic": Diagnostic("SUP_DELEGATION_FAILED", msg).to_dict()}
+            return {
+                "error": msg,
+                "request_id": uuid.uuid4().hex,
+                "diagnostic": Diagnostic("SUP_DELEGATION_FAILED", msg).to_dict(),
+            }

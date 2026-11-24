@@ -16,10 +16,32 @@ def engine_transport():
             text = payload.get("text", "")
             skills = []
             if "Python" in text:
-                skills.append({"canonical_name": "Python", "skill_id": "esco__007", "tier": "master", "confidence": 1.0, "method": "exact", "explanation": "exact name match in master tier"})
+                skills.append(
+                    {
+                        "canonical_name": "Python",
+                        "skill_id": "esco__007",
+                        "tier": "master",
+                        "confidence": 1.0,
+                        "method": "exact",
+                        "explanation": "exact name match in master tier",
+                    }
+                )
             if "Kubernetes" in text:
-                skills.append({"canonical_name": "Kubernetes", "skill_id": "cus__3003", "tier": "custom", "confidence": 1.0, "method": "exact", "explanation": "exact name match in custom tier"})
-            return {"skills": skills, "unresolved": [], "context_type": payload.get("context_type", "job_description")}
+                skills.append(
+                    {
+                        "canonical_name": "Kubernetes",
+                        "skill_id": "cus__3003",
+                        "tier": "custom",
+                        "confidence": 1.0,
+                        "method": "exact",
+                        "explanation": "exact name match in custom tier",
+                    }
+                )
+            return {
+                "skills": skills,
+                "unresolved": [],
+                "context_type": payload.get("context_type", "job_description"),
+            }
         if url.endswith("/v1/lifecycle/report"):
             return {"actions": [{"action": "flag_declining", "target": "esco__014"}]}
         raise AssertionError(url)
@@ -42,7 +64,9 @@ def client(engine_transport):
     class FakeRegistry:
         def find_by_skill(self, skill_name: str):
             class A:
-                card = type("C", (), {"name": "resume-screener", "url": "http://screener.local"})()
+                card = type(
+                    "C", (), {"name": "resume-screener", "url": "http://screener.local"}
+                )()
 
             return [A()] if skill_name == "Python" else []
 
@@ -51,9 +75,29 @@ def client(engine_transport):
         if len(messages) == 2:
             return {
                 "content": None,
-                "tool_calls": [{"id": "t1", "name": "ask_skills_agent", "arguments": {"skill": "infer_skills", "params": {"text": last, "context_type": "job_description"}}}],
+                "tool_calls": [
+                    {
+                        "id": "t1",
+                        "name": "ask_skills_agent",
+                        "arguments": {
+                            "skill": "infer_skills",
+                            "params": {"text": last, "context_type": "job_description"},
+                        },
+                    }
+                ],
                 "raw_tool_calls": [],
             }
-        return {"content": "Delegated to skills-agent; Python found.", "tool_calls": [], "raw_tool_calls": []}
+        return {
+            "content": "Delegated to skills-agent; Python found.",
+            "tool_calls": [],
+            "raw_tool_calls": [],
+        }
 
-    return TestClient(create_app(skills_agent=agent, registry=FakeRegistry(), mcp_registry=mcp, llm_chat=fake_llm))
+    return TestClient(
+        create_app(
+            skills_agent=agent,
+            registry=FakeRegistry(),
+            mcp_registry=mcp,
+            llm_chat=fake_llm,
+        )
+    )

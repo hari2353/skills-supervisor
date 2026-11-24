@@ -8,7 +8,9 @@ def make_client(skills_by_text):
             text = payload["params"]["text"]
             return {
                 "status": "completed",
-                "artifact": {"skills": [{"canonical_name": s} for s in skills_by_text(text)]},
+                "artifact": {
+                    "skills": [{"canonical_name": s} for s in skills_by_text(text)]
+                },
             }
         raise AssertionError(url)
 
@@ -16,9 +18,13 @@ def make_client(skills_by_text):
 
 
 def test_screen_candidate_matches_and_reports_gaps():
-    skills = lambda t: ["Python", "Docker"] if "resume" in t else ["Python", "Kubernetes", "Go"]
+    skills = lambda t: (
+        ["Python", "Docker"] if "resume" in t else ["Python", "Kubernetes", "Go"]
+    )
     client = make_client(skills)
-    out = screen_candidate(client, jd_text="Kubernetes Go Python", resume_text="my resume")
+    out = screen_candidate(
+        client, jd_text="Kubernetes Go Python", resume_text="my resume"
+    )
     assert out["matched"] == ["Python"]
     assert out["gaps"] == ["Go", "Kubernetes"]
     assert abs(out["coverage"] - 1 / 3) < 0.001

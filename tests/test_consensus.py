@@ -26,7 +26,9 @@ def test_weighted_vote():
 
 
 def test_self_consistency_consensus():
-    out = self_consistency([["yes", "yes", "no"], ["yes", "no", "no"], ["yes", "yes", "yes"]])
+    out = self_consistency(
+        [["yes", "yes", "no"], ["yes", "no", "no"], ["yes", "yes", "yes"]]
+    )
     assert out["winner"] == "yes"
     assert out["consensus"] is True
 

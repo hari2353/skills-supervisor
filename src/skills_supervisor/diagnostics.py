@@ -37,8 +37,12 @@ class Diagnostic(ValueError):
         return f"{DOCS}#{self.code.casefold()}"
 
     def to_dict(self) -> dict:
-        return {"code": self.code, "message": self.message,
-                "hint": self.hint, "docs": self.docs}
+        return {
+            "code": self.code,
+            "message": self.message,
+            "hint": self.hint,
+            "docs": self.docs,
+        }
 
     def __str__(self) -> str:
         return f"[{self.code}] {self.message} (fix: {self.hint}) (docs: {self.docs})"

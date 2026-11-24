@@ -17,7 +17,9 @@ class SkillsAgent:
             return self._transport("GET", f"{self.engine_base_url}{path}", params or {})
         import httpx
 
-        resp = httpx.get(f"{self.engine_base_url}{path}", params=params or {}, timeout=30.0)
+        resp = httpx.get(
+            f"{self.engine_base_url}{path}", params=params or {}, timeout=30.0
+        )
         resp.raise_for_status()
         return resp.json()
 
@@ -33,15 +35,25 @@ class SkillsAgent:
     def handle(self, skill: str, params: dict) -> dict:
         if skill not in self.HANDLED_SKILLS:
             diag = Diagnostic("SUP_TOOL_UNKNOWN", f"unsupported skill '{skill}'")
-            return {"status": "failed", "error": diag.message,
-                    "diagnostic": diag.to_dict()}
+            return {
+                "status": "failed",
+                "error": diag.message,
+                "diagnostic": diag.to_dict(),
+            }
         try:
             if skill == "infer_skills":
                 artifact = self._post("/v1/skills/infer", params)
             elif skill == "normalize_skill":
-                artifact = self._post("/v1/skills/normalize", {"name": params.get("name", "")})
+                artifact = self._post(
+                    "/v1/skills/normalize", {"name": params.get("name", "")}
+                )
             elif skill == "search_taxonomy":
-                artifact = {"results": self._get("/v1/skills/search", {"q": params.get("query", ""), "k": params.get("k", 5)})["results"]}
+                artifact = {
+                    "results": self._get(
+                        "/v1/skills/search",
+                        {"q": params.get("query", ""), "k": params.get("k", 5)},
+                    )["results"]
+                }
             else:
                 report_params = {}
                 if params.get("today"):

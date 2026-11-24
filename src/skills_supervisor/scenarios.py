@@ -43,14 +43,21 @@ def run_scenarios(
             run()
         except Exception as exc:
             latency = clock() - started
-            results.append(ScenarioResult(name, round(latency, 4), False, False, f"error: {exc}"))
+            results.append(
+                ScenarioResult(name, round(latency, 4), False, False, f"error: {exc}")
+            )
             continue
         latency = clock() - started
         safe = latency <= deadline_s
-        results.append(ScenarioResult(
-            name, round(latency, 4), True, safe,
-            "ok" if safe else f"deadline {latency:.3f}s > {deadline_s}s",
-        ))
+        results.append(
+            ScenarioResult(
+                name,
+                round(latency, 4),
+                True,
+                safe,
+                "ok" if safe else f"deadline {latency:.3f}s > {deadline_s}s",
+            )
+        )
 
     safe_count = sum(1 for r in results if r.safe)
     return {
@@ -59,11 +66,17 @@ def run_scenarios(
         "safe_rate": round(safe_count / len(results), 4),
         "failures": [
             {"name": r.name, "latency_s": r.latency_s, "detail": r.detail}
-            for r in results if not r.safe
+            for r in results
+            if not r.safe
         ][:_MAX_FAILURES],
         "scenarios": [
-            {"name": r.name, "latency_s": r.latency_s, "success": r.success,
-             "safe": r.safe, "detail": r.detail}
+            {
+                "name": r.name,
+                "latency_s": r.latency_s,
+                "success": r.success,
+                "safe": r.safe,
+                "detail": r.detail,
+            }
             for r in results
         ],
     }

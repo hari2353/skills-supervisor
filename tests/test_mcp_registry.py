@@ -24,7 +24,9 @@ def test_register_validates_required_fields(tmp_path):
         raised = True
     assert raised
 
-    saved = reg.register({"name": "docs-tools", "transport": "stdio", "endpoint": "python docs_mcp.py"})
+    saved = reg.register(
+        {"name": "docs-tools", "transport": "stdio", "endpoint": "python docs_mcp.py"}
+    )
     assert saved["framework"] == "fastmcp"
 
     reg2 = McpRegistry(persistence_path=tmp_path / "mcp.json")

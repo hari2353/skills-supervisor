@@ -13,7 +13,11 @@ import json
 from skills_supervisor.a2a import A2AClient
 from skills_supervisor.mcp_registry import McpRegistry
 from skills_supervisor.supervisor import SupervisorChatAgent
-from skills_supervisor.workflows import MAX_WORKFLOW_CHARS, screen_candidate, talent_brief
+from skills_supervisor.workflows import (
+    MAX_WORKFLOW_CHARS,
+    screen_candidate,
+    talent_brief,
+)
 
 
 def _final(text):
@@ -28,8 +32,13 @@ def _tool_call(name, arguments, call_id="t1"):
         return {
             "content": None,
             "tool_calls": [{"id": call_id, "name": name, "arguments": arguments}],
-            "raw_tool_calls": [{"id": call_id, "type": "function",
-                                "function": {"name": name, "arguments": json.dumps(arguments)}}],
+            "raw_tool_calls": [
+                {
+                    "id": call_id,
+                    "type": "function",
+                    "function": {"name": name, "arguments": json.dumps(arguments)},
+                }
+            ],
         }
 
     return step
@@ -39,7 +48,10 @@ def make_supervisor(script, **kwargs):
     def chat(messages, tools=None):
         return script.pop(0)(messages)
 
-    transport = lambda method, url, payload: {"status": "completed", "artifact": {"skills": [{"canonical_name": "Python"}]}}
+    transport = lambda method, url, payload: {
+        "status": "completed",
+        "artifact": {"skills": [{"canonical_name": "Python"}]},
+    }
     skills_client = A2AClient("http://a2a", transport=transport)
     registry = type("R", (), {"find_by_skill": staticmethod(lambda s: [])})()
     return SupervisorChatAgent(
@@ -91,7 +103,9 @@ class TestBoundedMemory:
         agent = make_supervisor(script, max_messages=0)
         for i in range(5):
             agent.chat(f"q{i}")
-        assert len(agent.messages) <= 2  # at least the newest non-system message survives
+        assert (
+            len(agent.messages) <= 2
+        )  # at least the newest non-system message survives
         assert agent.messages[0]["role"] == "system"
 
 
@@ -111,14 +125,18 @@ class TestTraceEnrichment:
         client = A2AClient("http://a2a", transport=exploding_transport)
         registry = type("R", (), {"find_by_skill": staticmethod(lambda s: [])})()
         script = [
-            _tool_call("ask_skills_agent", {"skill": "infer_skills", "params": {"text": "x"}}),
+            _tool_call(
+                "ask_skills_agent", {"skill": "infer_skills", "params": {"text": "x"}}
+            ),
             _final("gave up"),
         ]
 
         def llm(messages, tools=None):
             return script.pop(0)(messages)
 
-        agent = SupervisorChatAgent(llm, client, registry, McpRegistry(persistence_path=None))
+        agent = SupervisorChatAgent(
+            llm, client, registry, McpRegistry(persistence_path=None)
+        )
         out = agent.chat("try")
         entry = out["tool_trace"][0]
         assert entry["ok"] is False
@@ -132,11 +150,17 @@ class TestWorkflowValidation:
 
         def transport(method, url, payload):
             calls.append(1)
-            return {"status": "completed", "artifact": {"skills": [{"canonical_name": "Python"}]}}
+            return {
+                "status": "completed",
+                "artifact": {"skills": [{"canonical_name": "Python"}]},
+            }
 
         client = A2AClient("http://a2a", transport=transport)
         assert screen_candidate(client, " ", "resume")["status"] == "failed"
-        assert screen_candidate(client, "jd", "x" * (MAX_WORKFLOW_CHARS + 1))["status"] == "failed"
+        assert (
+            screen_candidate(client, "jd", "x" * (MAX_WORKFLOW_CHARS + 1))["status"]
+            == "failed"
+        )
         assert talent_brief(client, lambda s: [], "")["status"] == "failed"
         assert calls == []  # nothing paid for downstream
 
@@ -144,7 +168,10 @@ class TestWorkflowValidation:
         def transport(method, url, payload):
             if payload["params"]["context_type"] == "job_description":
                 return {"status": "completed", "artifact": {"skills": []}}
-            return {"status": "completed", "artifact": {"skills": [{"canonical_name": "Python"}]}}
+            return {
+                "status": "completed",
+                "artifact": {"skills": [{"canonical_name": "Python"}]},
+            }
 
         client = A2AClient("http://a2a", transport=transport)
         out = screen_candidate(client, "unparseable jd text", "Python dev")
@@ -153,9 +180,11 @@ class TestWorkflowValidation:
 
     def test_valid_inputs_still_work(self) -> None:
         def transport(method, url, payload):
-            skills = ([{"canonical_name": "Python"}, {"canonical_name": "SQL"}]
-                      if payload["params"]["context_type"] == "job_description"
-                      else [{"canonical_name": "Python"}])
+            skills = (
+                [{"canonical_name": "Python"}, {"canonical_name": "SQL"}]
+                if payload["params"]["context_type"] == "job_description"
+                else [{"canonical_name": "Python"}]
+            )
             return {"status": "completed", "artifact": {"skills": skills}}
 
         client = A2AClient("http://a2a", transport=transport)
